@@ -34,7 +34,7 @@ class TalonGenerator(QWidget):
         self.fuel_label = QLabel("Тип палива:")
         self.layout.addWidget(self.fuel_label)
         self.fuel_combo = QComboBox()
-        self.fuel_combo.addItems(["А-95", "A-92", "ДП"])
+        self.fuel_combo.addItems(["A-95X", "A-95St.", "A-95Pr.", "Газ", "ДП"])
         self.layout.addWidget(self.fuel_combo)
 
         self.nominal_label = QLabel("Номінал (л):")

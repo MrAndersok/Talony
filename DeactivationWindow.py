@@ -1,14 +1,23 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit, QMessageBox
 from PyQt6.QtCore import Qt
-
+from database import Database
 
 
 class DeactivationWindow(QWidget):
-    def __init__(self, db, update_main_window_callback):
+    def __init__(self, db, user, update_main_window_callback):
+        """
+        Вікно для деактивації талонів.
+        :param db: Об'єкт бази даних.
+        :param user: Дані поточного користувача.
+        :param update_main_window_callback: Функція для оновлення головного вікна.
+        """
         super().__init__()
+        self.user = user  # Додамо збереження користувача
         self.db = db
-        self.update_main_window_callback = update_main_window_callback  # Зберігаємо callback
-        self.setWindowTitle("Деактивація талонів")
+        self.update_main_window_callback = update_main_window_callback
+
+        # Оновлений заголовок вікна, що включає ім'я користувача
+        self.setWindowTitle(f"Деактивація талонів - {self.user['fullname']} ({self.user['role']})")
         self.resize(600, 480)
 
         self.scanned_tickets = []
@@ -82,10 +91,15 @@ class DeactivationWindow(QWidget):
             return
 
         for ticket in self.scanned_tickets:
-            self.db.deactivate_ticket_by_barcode(ticket["barcode"])
+            self.db.deactivate_ticket_by_barcode(ticket["barcode"], self.user["fullname"])  # Логування
 
         QMessageBox.information(self, "Успіх", "Талони успішно деактивовані.")
         self.scanned_tickets.clear()
         self.update_scanned_tickets_table()
 
-        self.update_main_window_callback()
+        if self.update_main_window_callback:
+            print("[DEBUG] Викликаємо update_main_window_callback()")
+            self.update_main_window_callback()
+        else:
+            print("[ERROR] ❌ update_main_window_callback не переданий!")
+

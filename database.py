@@ -10,12 +10,22 @@ class Database:
         self.create_tables()
 
     def create_tables(self):
-        """Створення таблиць, якщо не існують"""
+        """Створює таблиці, якщо вони не існують"""
         try:
             self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS firms (
+                    CREATE TABLE IF NOT EXISTS firms (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL UNIQUE
+                    );
+                    ''')
+            self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE
+                fullname TEXT NOT NULL,
+                username TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('admin', 'azs')),
+                approved_by TEXT NOT NULL
             );
             ''')
 
@@ -24,14 +34,15 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 firm_id INTEGER,
                 ticket_number TEXT NOT NULL,
-                fuel_type TEXT NOT NULL,
-                quantity INTEGER NOT NULL CHECK (quantity >= 0),
+                fuel_type TEXT NOT NULL CHECK (fuel_type IN ('ДП', 'A-95X', 'A-95St.', 'A-95Pr.', 'Газ')),
+                quantity INTEGER NOT NULL,
                 status TEXT NOT NULL CHECK (status IN ('active', 'inactive')),
                 activation_date TEXT,
                 barcode TEXT UNIQUE,
                 date_created TEXT,
                 date_activated TEXT,
                 invoice_number TEXT,
+                modified_by TEXT,
                 FOREIGN KEY (firm_id) REFERENCES firms(id) ON DELETE CASCADE
             );
             ''')
@@ -78,10 +89,11 @@ class Database:
             return None
 
     def get_tickets_by_firm(self, firm_name):
-        """Отримати талони фірми"""
+        """Отримати талони, які реально належать цій фірмі"""
         try:
             self.cursor.execute('''
-                SELECT t.ticket_number, t.fuel_type, t.invoice_number, t.quantity, t.status
+                SELECT t.ticket_number, t.fuel_type, t.invoice_number, t.quantity,
+                       t.status, t.date_activated, t.date_created AS date_deactivated, t.modified_by
                 FROM tickets t
                 JOIN firms f ON t.firm_id = f.id
                 WHERE f.name = ?
@@ -113,16 +125,18 @@ class Database:
             print(f"Помилка при пошуку талона: {e}")
             return None
 
-    def activate_ticket_with_invoice(self, barcode, invoice_number, firm_id):
-        """Активація талона з накладною"""
+    def activate_ticket_with_invoice(self, barcode, invoice_number, firm_id, modified_by):
+        """Активація талона з накладною та зазначенням, хто активував"""
         try:
             self.cursor.execute('''
                 UPDATE tickets
                 SET status = 'active',
                     invoice_number = ?,
-                    firm_id = ?
+                    firm_id = ?,
+                    date_activated = CURRENT_DATE,
+                    modified_by = ?
                 WHERE barcode = ?
-            ''', (invoice_number, firm_id, barcode))
+            ''', (invoice_number, firm_id, modified_by, barcode))
             self.connection.commit()
         except sqlite3.Error as e:
             print(f"Помилка при активації талона: {e}")
@@ -205,16 +219,43 @@ class Database:
         """, (firm_id,))
         return self.cursor.fetchall()
 
-    def deactivate_ticket_by_barcode(self, barcode):
-        """Деактивує талон за штрих-кодом"""
+    def deactivate_ticket_by_barcode(self, barcode, modified_by):
+        """Деактивує талон і записує, хто зробив зміну"""
         try:
-            self.cursor.execute("""
-                UPDATE tickets SET status = 'inactive', date_activated = NULL WHERE barcode = ?
-            """, (barcode,))
+            self.cursor.execute(
+                "UPDATE tickets SET status = 'inactive', date_activated = NULL, modified_by = ? WHERE barcode = ?",
+                (modified_by, barcode)
+            )
             self.connection.commit()
         except sqlite3.Error as e:
             print(f"Помилка при деактивації талона {barcode}: {e}")
 
+    def add_user(self, fullname, username, password, role, approved_by=None):
+        """Додає нового користувача (реєстрація)"""
+        try:
+            self.cursor.execute('''
+                INSERT INTO users (fullname, username, password, role, approved_by)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (fullname, username, password, role, approved_by))
+            self.connection.commit()
+            return True
+        except sqlite3.IntegrityError:
+            print(f"❌ Користувач '{username}' вже існує!")
+            return False
+        except sqlite3.Error as e:
+            print(f"❌ Помилка при додаванні користувача: {e}")
+            return False
+
+    def get_user(self, username, password):
+        """Перевіряє логін користувача"""
+        try:
+            self.cursor.execute('''
+                SELECT * FROM users WHERE username = ? AND password = ?
+            ''', (username, password))
+            return self.cursor.fetchone()
+        except sqlite3.Error as e:
+            print(f"❌ Помилка при отриманні користувача: {e}")
+            return None
     def close(self):
         """Закрити базу"""
         self.connection.close()
