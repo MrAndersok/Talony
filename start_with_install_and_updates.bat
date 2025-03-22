@@ -4,6 +4,17 @@ SETLOCAL
 :: ====== Шлях до встановленого Python ======
 set PYTHON_PATH=%LocalAppData%\Programs\Python\Python311\python.exe
 
+:: ====== Перехід у теку скрипта ======
+cd /d "%~dp0"
+
+:: ====== Оновлення з GitHub ======
+echo Перевірка наявності оновлень з GitHub...
+if exist .git (
+    git pull origin main
+) else (
+    echo ⚠️ Ця папка не є Git-репозиторієм! Пропускаємо оновлення...
+)
+
 :: ====== Перевіряємо, чи встановлений Python ======
 if exist "%PYTHON_PATH%" (
     echo Python знайдено: %PYTHON_PATH%
@@ -22,9 +33,6 @@ echo Оновлення pip...
 echo Встановлення необхідних бібліотек...
 "%PYTHON_PATH%" -m pip install pyqt6 reportlab
 
-:: ==== Додати інші бібліотеки за потреби ====
-:: "%PYTHON_PATH%" -m pip install pillow pandas ...
-
 :: ====== Запуск програми ======
 echo Запуск програми...
 start "" "%PYTHON_PATH%" main.py
@@ -33,3 +41,4 @@ start "" "%PYTHON_PATH%" main.py
 echo Готово!
 pause
 ENDLOCAL
+
