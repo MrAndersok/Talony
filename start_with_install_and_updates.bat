@@ -8,14 +8,25 @@ set PYTHON_PATH=%LocalAppData%\Programs\Python\Python311\python.exe
 cd /d "%~dp0"
 
 :: ====== Оновлення з GitHub ======
-echo Перевірка наявності оновлень з GitHub...
+echo Перевірка оновлень з GitHub...
 if exist .git (
     git pull origin main
 ) else (
-    echo ⚠️ Ця папка не є Git-репозиторієм! Пропускаємо оновлення...
+    echo ⚠️ Ця папка не є Git-репозиторієм!
 )
 
-:: ====== Перевіряємо, чи встановлений Python ======
+:: ====== Створення папок, якщо їх нема ======
+if not exist "generated_reports" (
+    mkdir "generated_reports"
+    echo Створено папку: generated_reports
+)
+
+if not exist "talons_output" (
+    mkdir "talons_output"
+    echo Створено папку: talons_output
+)
+
+:: ====== Перевірка Python ======
 if exist "%PYTHON_PATH%" (
     echo Python знайдено: %PYTHON_PATH%
 ) else (
@@ -29,7 +40,7 @@ if exist "%PYTHON_PATH%" (
 echo Оновлення pip...
 "%PYTHON_PATH%" -m pip install --upgrade pip
 
-:: ====== Встановлення необхідних бібліотек ======
+:: ====== Встановлення бібліотек ======
 echo Встановлення необхідних бібліотек...
 "%PYTHON_PATH%" -m pip install pyqt6 reportlab
 
@@ -41,4 +52,3 @@ start "" "%PYTHON_PATH%" main.py
 echo Готово!
 pause
 ENDLOCAL
-
