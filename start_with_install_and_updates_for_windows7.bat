@@ -2,7 +2,7 @@
 SETLOCAL
 
 :: ====== Шлях до встановленого Python ======
-set PYTHON_PATH=%LocalAppData%\Programs\Python\Python311\python.exe
+set PYTHON_PATH=%LocalAppData%\Programs\Python\Python38\python.exe
 
 :: ====== Перехід у теку скрипта ======
 cd /d "%~dp0"
@@ -31,13 +31,14 @@ if exist "%PYTHON_PATH%" (
     echo Python знайдено: %PYTHON_PATH%
 ) else (
     echo Python не знайдено. Завантаження та встановлення...
-    powershell -Command "Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.11.3/python-3.11.3-amd64.exe -OutFile python-installer.exe"
+    powershell -Command "Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe -OutFile python-installer.exe"
     python-installer.exe /quiet InstallAllUsers=0 PrependPath=1 Include_test=0
     del python-installer.exe
 )
 
 :: ====== Оновлення pip ======
 echo Оновлення pip...
+"%PYTHON_PATH%" -m ensurepip
 "%PYTHON_PATH%" -m pip install --upgrade pip
 
 :: ====== Встановлення бібліотек ======
