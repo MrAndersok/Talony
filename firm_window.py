@@ -87,7 +87,7 @@ class FirmWindow(QWidget):
 
     def convert_fuel_type(self, fuel_type):
         fuel_map = {
-            "A-95X": "A-95St.",
+            "A-95X": "A-95X",
             "A-95Standart": "A-95St.",
             "A-95Premium": "A-95Pr.",
             "Газ": "Газ"
