@@ -28,8 +28,8 @@ class DeactivationWindow(QWidget):
 
         # Таблиця для сканованих талонів
         self.scanned_tickets_table = QTableWidget()
-        self.scanned_tickets_table.setColumnCount(5)
-        self.scanned_tickets_table.setHorizontalHeaderLabels(["Штрих-код", "Тип палива", "Номер талону", "Кількість (л)", "Статус"])
+        self.scanned_tickets_table.setColumnCount(6)
+        self.scanned_tickets_table.setHorizontalHeaderLabels(["Штрих-код", "Тип палива", "Номер талону", "Кількість (л)", "Статус", "Фірма"])
         layout.addWidget(self.scanned_tickets_table)
 
         # Поле для введення штрих-коду
@@ -71,12 +71,14 @@ class DeactivationWindow(QWidget):
             ticket_number = ticket["ticket_number"]
             quantity = ticket["quantity"]
             status = "Активний" if ticket["status"] == "active" else "Не активовано"
+            firm_name = ticket["firm_name"] if ticket["firm_name"] else "—"
 
             self.scanned_tickets_table.setItem(row, 0, self.create_readonly_item(ticket_id))
             self.scanned_tickets_table.setItem(row, 1, self.create_readonly_item(fuel_type))
             self.scanned_tickets_table.setItem(row, 2, self.create_readonly_item(ticket_number))
             self.scanned_tickets_table.setItem(row, 3, self.create_readonly_item(str(quantity)))
             self.scanned_tickets_table.setItem(row, 4, self.create_readonly_item(status))
+            self.scanned_tickets_table.setItem(row, 5, self.create_readonly_item(firm_name))
 
     def create_readonly_item(self, text):
         """Створює не редаговану клітинку"""

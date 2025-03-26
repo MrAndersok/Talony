@@ -114,7 +114,6 @@ class TalonGenerator(QWidget):
                 c.setFont("ODESSA", 10)
                 c.drawCentredString(center_x, y + cell_height - 50, "2025")
 
-                # Правильний шлях до картинки
                 c.drawImage(("img.png"), center_x - 17, y + cell_height - 80, width=35, height=18, mask='auto')
 
                 c.setFont("KarinaBlackItalic", 28)
@@ -152,34 +151,36 @@ class TalonGenerator(QWidget):
                     date_created=QDate.currentDate().toString("yyyy-MM-dd")
                 )
 
-            while len(numbers_list) < cols * rows:
-                numbers_list.append("")
-                barcodes_list.append("")
-
             # ---------- Тильна сторона ----------
-            c.showPage()
+            pages = (count + cols * rows - 1) // (cols * rows)
+            barcodes_paged = [barcodes_list[i * cols * rows:(i + 1) * cols * rows] for i in range(pages)]
 
             def mirror_rows(data, cols):
                 rows_list = [data[i:i + cols] for i in range(0, len(data), cols)]
                 return [item for row in rows_list for item in row[::-1]]
 
-            mirrored_barcodes = mirror_rows(barcodes_list, cols)
+            for page_barcodes in barcodes_paged:
+                while len(page_barcodes) < cols * rows:
+                    page_barcodes.append("")
 
-            for idx, barcode_value in enumerate(mirrored_barcodes):
-                col = idx % cols
-                row = (idx // cols) % rows
-                x = col * cell_width
-                y = height - (row + 1) * cell_height
-                center_x = x + cell_width / 2
+                mirrored_barcodes = mirror_rows(page_barcodes, cols)
+                c.showPage()
 
-                if barcode_value:
-                    barcode_image = code128.Code128(barcode_value, barHeight=20 * mm, barWidth=0.5)
-                    barcode_image.drawOn(c, center_x - (barcode_image.width / 2), y + cell_height / 2 - 10)
-                    c.setFont("TimesNewRomanBold", 12)
-                    c.drawCentredString(center_x, y + 10, f"дійсний до {valid_until}")
+                for idx, barcode_value in enumerate(mirrored_barcodes):
+                    col = idx % cols
+                    row = (idx // cols) % rows
+                    x = col * cell_width
+                    y = height - (row + 1) * cell_height
+                    center_x = x + cell_width / 2
 
-                c.setLineWidth(0.5)
-                c.rect(x, y, cell_width, cell_height)
+                    if barcode_value:
+                        barcode_image = code128.Code128(barcode_value, barHeight=20 * mm, barWidth=0.5)
+                        barcode_image.drawOn(c, center_x - (barcode_image.width / 2), y + cell_height / 2 - 10)
+                        c.setFont("TimesNewRomanBold", 12)
+                        c.drawCentredString(center_x, y + 10, f"дійсний до {valid_until}")
+
+                    c.setLineWidth(0.5)
+                    c.rect(x, y, cell_width, cell_height)
 
             c.save()
             QMessageBox.information(self, "Успіх", f"Талони збережено у файл:\n{filename}")

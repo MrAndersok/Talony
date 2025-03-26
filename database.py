@@ -117,9 +117,14 @@ class Database:
             print(f"Помилка при додаванні талона: {e}")
 
     def get_ticket_info_by_code(self, barcode):
-        """Інформація про талон по штрих-коду"""
+        """Інформація про талон по штрих-коду з назвою фірми"""
         try:
-            self.cursor.execute("SELECT * FROM tickets WHERE barcode = ?", (barcode,))
+            self.cursor.execute('''
+                SELECT t.*, f.name AS firm_name
+                FROM tickets t
+                LEFT JOIN firms f ON f.id = t.firm_id
+                WHERE t.barcode = ?
+            ''', (barcode,))
             return self.cursor.fetchone()
         except sqlite3.Error as e:
             print(f"Помилка при пошуку талона: {e}")
