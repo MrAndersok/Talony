@@ -86,9 +86,9 @@ class MainWindow(QWidget):
 
                 dp_sum = sum(t["quantity"] for t in tickets if t["fuel_type"] == "ДП")
                 x95_sum = sum(t["quantity"] for t in tickets if t["fuel_type"] == "A-95X")
-                s95_sum = sum(t["quantity"] for t in tickets if t["fuel_type"] == "A-95Standart")
-                p95_sum = sum(t["quantity"] for t in tickets if t["fuel_type"] == "A-95Premium")
-                gas_sum = sum(t["quantity"] for t in tickets if t["fuel_type"].lower() == "газ")
+                s95_sum = sum(t["quantity"] for t in tickets if t["fuel_type"] == "A-95St.")
+                p95_sum = sum(t["quantity"] for t in tickets if t["fuel_type"] == "A-95Pr.")
+                gas_sum = sum(t["quantity"] for t in tickets if t["fuel_type"] == "Газ")
 
                 print(f"[DEBUG] Фірма: {firm_name}, ДП: {dp_sum}, A-95X: {x95_sum}, A-Standart: {s95_sum}, A-Premium: {p95_sum}, Газ: {gas_sum}")
 
