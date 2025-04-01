@@ -51,6 +51,18 @@ class Database:
         except sqlite3.Error as e:
             print(f"Помилка при створенні таблиць: {e}")
 
+    def ensure_column_date_deactivated(self):
+        """Перевіряє та додає колонку date_deactivated, якщо її ще немає"""
+        try:
+            self.cursor.execute("ALTER TABLE tickets ADD COLUMN date_deactivated TEXT")
+            self.connection.commit()
+            print("[INFO] ✅ Колонка date_deactivated додана.")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e).lower():
+                print("[INFO] 🔁 Колонка date_deactivated вже існує.")
+            else:
+                print(f"[ERROR] ❌ Помилка при додаванні колонки date_deactivated: {e}")
+
     def add_firm(self, name):
         """Додає нову фірму"""
         try:
@@ -93,7 +105,7 @@ class Database:
         try:
             self.cursor.execute('''
                 SELECT t.ticket_number, t.fuel_type, t.invoice_number, t.quantity,
-                       t.status, t.date_activated, t.date_created AS date_deactivated, t.modified_by
+                       t.status, t.date_activated, t.date_deactivated, t.modified_by
                 FROM tickets t
                 JOIN firms f ON t.firm_id = f.id
                 WHERE f.name = ?
@@ -199,6 +211,19 @@ class Database:
         except sqlite3.Error as e:
             print(f"Помилка при активації талона {barcode}: {e}")
 
+    def get_ticket_by_number_and_fuel(self, number, fuel_type):
+        try:
+            self.cursor.execute("""
+                SELECT t.*, f.name AS firm_name
+                FROM tickets t
+                LEFT JOIN firms f ON f.id = t.firm_id
+                WHERE t.ticket_number = ? AND t.fuel_type = ? AND t.status = 'active'
+            """, (number, fuel_type))
+            return self.cursor.fetchone()
+        except sqlite3.Error as e:
+            print(f"Помилка при пошуку талона по номеру: {e}")
+            return None
+
     def get_fuel_summary_by_firm(self):
         """Повертає суму літрів палива по кожній фірмі тільки для активних талонів"""
         try:
@@ -225,15 +250,32 @@ class Database:
         return self.cursor.fetchall()
 
     def deactivate_ticket_by_barcode(self, barcode, modified_by):
-        """Деактивує талон і записує, хто зробив зміну"""
+        """Деактивує талон: фіксує дату деактивації і хто це зробив"""
         try:
-            self.cursor.execute(
-                "UPDATE tickets SET status = 'inactive', date_activated = NULL, modified_by = ? WHERE barcode = ?",
-                (modified_by, barcode)
-            )
+            self.cursor.execute("""
+                UPDATE tickets
+                SET status = 'inactive',
+                    date_deactivated = CURRENT_DATE,
+                    modified_by = ?
+                WHERE barcode = ?
+            """, (modified_by, barcode))
             self.connection.commit()
-        except sqlite3.Error as e:
-            print(f"Помилка при деактивації талона {barcode}: {e}")
+        except sqlite3.OperationalError as e:
+            if "no such column: date_deactivated" in str(e):
+                print("[INFO] Колонка date_deactivated відсутня — додаємо автоматично...")
+                self.ensure_column_date_deactivated()
+
+                # 🔁 повторна спроба оновлення
+                self.cursor.execute("""
+                    UPDATE tickets
+                    SET status = 'inactive',
+                        date_deactivated = CURRENT_DATE,
+                        modified_by = ?
+                    WHERE barcode = ?
+                """, (modified_by, barcode))
+                self.connection.commit()
+            else:
+                print(f"❌ Інша помилка при деактивації талона {barcode}: {e}")
 
     def add_user(self, fullname, username, password, role, approved_by=None):
         """Додає нового користувача (реєстрація)"""
@@ -250,6 +292,18 @@ class Database:
         except sqlite3.Error as e:
             print(f"❌ Помилка при додаванні користувача: {e}")
             return False
+
+    def ensure_column_date_deactivated(self):
+        """Додає колонку date_deactivated, якщо вона відсутня"""
+        try:
+            self.cursor.execute("ALTER TABLE tickets ADD COLUMN date_deactivated TEXT")
+            self.connection.commit()
+            print("[INFO] ✅ Колонка date_deactivated додана.")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e).lower():
+                print("[INFO] 🔁 Колонка вже існує.")
+            else:
+                print(f"[ERROR] ❌ Не вдалося додати колонку date_deactivated: {e}")
 
     def get_user(self, username, password):
         """Перевіряє логін користувача"""

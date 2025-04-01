@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QLineEdit, QMessageBox
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QCheckBox, QHBoxLayout
 from database import Database
 
 
@@ -37,6 +38,23 @@ class DeactivationWindow(QWidget):
         self.scanner_input.setPlaceholderText("Введіть або відскануйте штрих-код і натисніть Enter")
         self.scanner_input.returnPressed.connect(self.add_scanned_ticket)
         layout.addWidget(self.scanner_input)
+
+        # Поле для введення номера талону
+        self.ticket_number_input = QLineEdit()
+        self.ticket_number_input.setPlaceholderText("Або введіть номер талону та виберіть тип пального")
+        self.ticket_number_input.returnPressed.connect(self.add_ticket_by_number)
+        layout.addWidget(self.ticket_number_input)
+
+        # Чекбокси типів пального — як радіогрупа (лише один активний)
+        self.fuel_checkboxes = []
+        fuel_types = ["ДП", "A-95X", "A-95St.", "A-95Pr.", "Газ"]
+        checkbox_layout = QHBoxLayout()
+        for fuel in fuel_types:
+            checkbox = QCheckBox(fuel)
+            checkbox.toggled.connect(self.only_one_checked)  # новий сигнал
+            self.fuel_checkboxes.append(checkbox)
+            checkbox_layout.addWidget(checkbox)
+        layout.addLayout(checkbox_layout)
 
         # Кнопка деактивації
         self.deactivate_button = QPushButton("Деактивувати всі")
@@ -85,6 +103,40 @@ class DeactivationWindow(QWidget):
         item = QTableWidgetItem(text)
         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         return item
+
+    def add_ticket_by_number(self):
+        """Додає талон за номером і вибраним типом пального (один чекбокс)"""
+        number = self.ticket_number_input.text().strip()
+        if not number:
+            return
+
+        # Знайти єдиний активний чекбокс
+        selected_fuel = None
+        for cb in self.fuel_checkboxes:
+            if cb.isChecked():
+                selected_fuel = cb.text()
+                break
+
+        if not selected_fuel:
+            QMessageBox.warning(self, "Увага", "Виберіть тип пального.")
+            return
+
+        ticket_info = self.db.get_ticket_by_number_and_fuel(number, selected_fuel)
+        if ticket_info:
+            self.scanned_tickets.append(ticket_info)
+            self.update_scanned_tickets_table()
+            self.ticket_number_input.clear()
+        else:
+            QMessageBox.warning(self, "Попередження",
+                                f"Талон з номером '{number}' і пальним '{selected_fuel}' не знайдено або він вже деактивований.")
+
+    def only_one_checked(self):
+        """Залишає активним лише один чекбокс одночасно"""
+        sender = self.sender()
+        if sender.isChecked():
+            for cb in self.fuel_checkboxes:
+                if cb != sender:
+                    cb.setChecked(False)
 
     def deactivate_scanned_tickets(self):
         """Деактивує всі знайдені талони"""

@@ -13,5 +13,7 @@ def print_all_tickets():
     else:
         print("❌ Талони не знайдено.")
 
+
+
 if __name__ == "__main__":
     print_all_tickets()

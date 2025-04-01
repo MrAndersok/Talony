@@ -40,7 +40,7 @@ class TalonGenerator(QWidget):
         self.nominal_label = QLabel("Номінал (л):")
         self.layout.addWidget(self.nominal_label)
         self.nominal_combo = QComboBox()
-        self.nominal_combo.addItems(["5", "10", "20", "50"])
+        self.nominal_combo.addItems(["5", "10", "20", "50", "100"])
         self.layout.addWidget(self.nominal_combo)
 
         self.date_label = QLabel("Дійсний до:")
@@ -190,6 +190,6 @@ class TalonGenerator(QWidget):
 
     @staticmethod
     def number_to_words(n):
-        return {5: "п’ять", 10: "десять", 20: "двадцять", 50: "п’ятдесят"}.get(n, str(n))
+        return {5: "п’ять", 10: "десять", 20: "двадцять", 50: "п’ятдесят", 100: "сто"}.get(n, str(n))
 import reportlab.graphics.barcode.code93
 

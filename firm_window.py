@@ -64,8 +64,11 @@ class FirmWindow(QWidget):
                 invoice_number = ticket["invoice_number"] if ticket["invoice_number"] else "Немає"
                 quantity = str(ticket["quantity"])
                 status = "Активний" if ticket["status"] == "active" else "Деактивований"
+
                 date_activated = ticket["date_activated"] if ticket["date_activated"] else "—"
-                date_deactivated = ticket["date_deactivated"] if ticket["date_deactivated"] else "—"
+                # ✅ Показує дату деактивації тільки для неактивних талонів
+                date_deactivated = ticket["date_deactivated"] if ticket["status"] == "inactive" and ticket[
+                    "date_deactivated"] else "—"
                 modified_by = ticket["modified_by"] if ticket["modified_by"] else "Невідомо"
 
                 self.active_tickets_table.setItem(row, 0, self.create_readonly_item(ticket_number))
@@ -76,6 +79,7 @@ class FirmWindow(QWidget):
                 self.active_tickets_table.setItem(row, 5, self.create_readonly_item(date_activated))
                 self.active_tickets_table.setItem(row, 6, self.create_readonly_item(date_deactivated))
                 self.active_tickets_table.setItem(row, 7, self.create_readonly_item(modified_by))
+
         except Exception as e:
             print(f"[ERROR] Помилка при завантаженні талонів: {e}")
             QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити талони для фірми. Помилка: {e}")
