@@ -104,8 +104,15 @@ class Database:
         """Отримати талони, які реально належать цій фірмі"""
         try:
             self.cursor.execute('''
-                SELECT t.ticket_number, t.fuel_type, t.invoice_number, t.quantity,
-                       t.status, t.date_activated, t.date_deactivated, t.modified_by
+                SELECT 
+                    t.ticket_number, 
+                    t.fuel_type, 
+                    t.invoice_number, 
+                    t.quantity,
+                    t.status, 
+                    t.date_activated, 
+                    t.date_created,  -- ← просто date_created
+                    t.modified_by
                 FROM tickets t
                 JOIN firms f ON t.firm_id = f.id
                 WHERE f.name = ?

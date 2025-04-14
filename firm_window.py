@@ -67,8 +67,7 @@ class FirmWindow(QWidget):
 
                 date_activated = ticket["date_activated"] if ticket["date_activated"] else "—"
                 # ✅ Показує дату деактивації тільки для неактивних талонів
-                date_deactivated = ticket["date_deactivated"] if ticket["status"] == "inactive" and ticket[
-                    "date_deactivated"] else "—"
+                date_deactivated = ticket["date_activated"] if ticket["status"] == "inactive" else "—"
                 modified_by = ticket["modified_by"] if ticket["modified_by"] else "Невідомо"
 
                 self.active_tickets_table.setItem(row, 0, self.create_readonly_item(ticket_number))
