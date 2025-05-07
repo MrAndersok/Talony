@@ -21,7 +21,7 @@ class ReportWindow(QWidget):
 
         self.layout.addWidget(QLabel("Тип звіту:"))
         self.report_type_combo = QComboBox()
-        self.report_type_combo.addItems(["По деактивованих талонах", "По активованих талонах"])
+        self.report_type_combo.addItems(["По деактивованих талонах", "По загальній кількості на фірму"])
         self.report_type_combo.currentIndexChanged.connect(self.toggle_firm_selection)
         self.layout.addWidget(self.report_type_combo)
 
@@ -48,7 +48,7 @@ class ReportWindow(QWidget):
         self.setLayout(self.layout)
 
     def toggle_firm_selection(self):
-        is_active = self.report_type_combo.currentText() == "По активованих талонах"
+        is_active = self.report_type_combo.currentText() == "По загальній кількості на фірму"
         self.firm_combo.setEnabled(is_active)
 
     def load_firms(self):
@@ -213,51 +213,66 @@ class ReportWindow(QWidget):
 
             # Статистика: активовано / залишилось
             cursor2 = self.db.connection.cursor()
-            if report_type == "По активованих талонах":
-                firm_name = self.firm_combo.currentText()
-                cursor2.execute("SELECT id FROM firms WHERE name = ?", (firm_name,))
+            # Загальна статистика по талонах і літрах
+            if report_type == "По загальній кількості на фірму":
+                cursor2.execute("SELECT id FROM firms WHERE name = ?", (self.firm_combo.currentText(),))
                 firm_row = cursor2.fetchone()
                 firm_id = firm_row["id"] if firm_row else None
 
                 cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE status = 'active' AND firm_id = ?",
                                 (firm_id,))
-                total_active = cursor2.fetchone()["count"]
+                active_count = cursor2.fetchone()["count"]
 
-                cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE status != 'active' AND firm_id = ?",
-                                (firm_id,))
-                total_left = cursor2.fetchone()["count"]
-            else:
-                cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE status = 'active'")
-                total_active = cursor2.fetchone()["count"]
-
-                cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE status != 'active'")
-                total_left = cursor2.fetchone()["count"]
-
-            c.setFont("DejaVuSans", 10)
-            c.drawString(col_x[1], y, f"Всього активовано талонів: {total_active}")
-            y -= LINE_HEIGHT
-            c.drawString(col_x[1], y, f"Залишилось талонів: {total_left}")
-
-            # Порахувати літри
-            if report_type == "По активованих талонах":
                 cursor2.execute("SELECT SUM(quantity) as liters FROM tickets WHERE status = 'active' AND firm_id = ?",
                                 (firm_id,))
-                liters_active = cursor2.fetchone()["liters"] or 0
+                active_liters = cursor2.fetchone()["liters"] or 0
 
-                cursor2.execute("SELECT SUM(quantity) as liters FROM tickets WHERE status != 'active' AND firm_id = ?",
+                cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE status = 'inactive' AND firm_id = ?",
                                 (firm_id,))
-                liters_left = cursor2.fetchone()["liters"] or 0
+                inactive_count = cursor2.fetchone()["count"]
+
+                cursor2.execute("SELECT SUM(quantity) as liters FROM tickets WHERE status = 'inactive' AND firm_id = ?",
+                                (firm_id,))
+                inactive_liters = cursor2.fetchone()["liters"] or 0
+
+                cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE firm_id = ?", (firm_id,))
+                total_count = cursor2.fetchone()["count"]
+
+                cursor2.execute("SELECT SUM(quantity) as liters FROM tickets WHERE firm_id = ?", (firm_id,))
+                total_liters = cursor2.fetchone()["liters"] or 0
+
             else:
+                cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE status = 'active'")
+                active_count = cursor2.fetchone()["count"]
+
                 cursor2.execute("SELECT SUM(quantity) as liters FROM tickets WHERE status = 'active'")
-                liters_active = cursor2.fetchone()["liters"] or 0
+                active_liters = cursor2.fetchone()["liters"] or 0
 
-                cursor2.execute("SELECT SUM(quantity) as liters FROM tickets WHERE status != 'active'")
-                liters_left = cursor2.fetchone()["liters"] or 0
+                cursor2.execute("SELECT COUNT(*) as count FROM tickets WHERE status = 'inactive'")
+                inactive_count = cursor2.fetchone()["count"]
 
+                cursor2.execute("SELECT SUM(quantity) as liters FROM tickets WHERE status = 'inactive'")
+                inactive_liters = cursor2.fetchone()["liters"] or 0
+
+                cursor2.execute("SELECT COUNT(*) as count FROM tickets")
+                total_count = cursor2.fetchone()["count"]
+
+                cursor2.execute("SELECT SUM(quantity) as liters FROM tickets")
+                total_liters = cursor2.fetchone()["liters"] or 0
+
+            # Виведення
+            c.setFont("DejaVuSans", 10)
+            c.drawString(col_x[1], y, f"Всього активних талонів: {active_count}")
             y -= LINE_HEIGHT
-            c.drawString(col_x[1], y, f"Загальна кількість літрів активованих: {liters_active}")
+            c.drawString(col_x[1], y, f"Всього літрів активних: {active_liters}")
             y -= LINE_HEIGHT
-            c.drawString(col_x[1], y, f"Загальна кількість літрів залишених: {liters_left}")
+            c.drawString(col_x[1], y, f"Всього деактивовано талонів: {inactive_count}")
+            y -= LINE_HEIGHT
+            c.drawString(col_x[1], y, f"Всього літрів деактивовано: {inactive_liters}")
+            y -= LINE_HEIGHT
+            c.drawString(col_x[1], y, f"Загальна кількість талонів: {total_count}")
+            y -= LINE_HEIGHT
+            c.drawString(col_x[1], y, f"Загальна кількість літрів: {total_liters}")
 
             c.save()
 
