@@ -78,7 +78,7 @@ class ReportWindow(QWidget):
                     SELECT f.name AS firm_name, t.date_activated, t.ticket_number, t.quantity, t.fuel_type
                     FROM tickets t
                     JOIN firms f ON f.id = t.firm_id
-                    WHERE t.status = 'active' AND t.date_activated BETWEEN ? AND ?
+                    WHERE t.date_activated IS NOT NULL AND t.date_activated BETWEEN ? AND ?
                     ORDER BY t.date_activated
                 ''', (start, end))
                 rows = cursor.fetchall()
